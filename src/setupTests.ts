@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom';
-import { TextEncoder, TextDecoder } from 'util';
+// import { TextEncoder, TextDecoder } from 'util';
 
 // Polyfill TextEncoder/TextDecoder for jsdom
-Object.assign(global, { TextEncoder, TextDecoder });
+// Object.assign(global, { TextEncoder, TextDecoder });
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
