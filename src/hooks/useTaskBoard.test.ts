@@ -10,22 +10,32 @@ describe('useTaskBoard', () => {
   describe('initial state', () => {
     it('should have default columns', () => {
       const { result } = renderHook(() => useTaskBoard());
-      
+
       expect(result.current.columns).toHaveLength(3);
       expect(result.current.columns.map(c => c.name)).toEqual(['To Do', 'In Progress', 'Done']);
     });
 
     it('should start with no tasks', () => {
       const { result } = renderHook(() => useTaskBoard());
-      
-      expect(result.current.tasks).toHaveLength(0);
+
+      expect(result.current.allTasks).toHaveLength(0);
+    });
+
+    it('should have tasks as object with column keys', () => {
+      const { result } = renderHook(() => useTaskBoard());
+
+      expect(result.current.tasks).toEqual({
+        'todo': [],
+        'in-progress': [],
+        'done': [],
+      });
     });
   });
 
   describe('task operations', () => {
     it('should add a new task', () => {
       const { result } = renderHook(() => useTaskBoard());
-      
+
       act(() => {
         result.current.addTask({
           name: 'Test Task',
@@ -36,14 +46,15 @@ describe('useTaskBoard', () => {
           isFavorite: false,
         });
       });
-      
-      expect(result.current.tasks).toHaveLength(1);
-      expect(result.current.tasks[0].name).toBe('Test Task');
+
+      expect(result.current.tasks['todo']).toHaveLength(1);
+      expect(result.current.tasks['todo'][0].name).toBe('Test Task');
+      expect(result.current.allTasks).toHaveLength(1);
     });
 
     it('should update a task', () => {
       const { result } = renderHook(() => useTaskBoard());
-      
+
       let taskId: string;
       act(() => {
         const task = result.current.addTask({
@@ -56,17 +67,17 @@ describe('useTaskBoard', () => {
         });
         taskId = task.id;
       });
-      
+
       act(() => {
         result.current.updateTask(taskId, { name: 'Updated' });
       });
-      
-      expect(result.current.tasks[0].name).toBe('Updated');
+
+      expect(result.current.tasks['todo'][0].name).toBe('Updated');
     });
 
     it('should delete a task', () => {
       const { result } = renderHook(() => useTaskBoard());
-      
+
       let taskId: string;
       act(() => {
         const task = result.current.addTask({
@@ -79,19 +90,19 @@ describe('useTaskBoard', () => {
         });
         taskId = task.id;
       });
-      
-      expect(result.current.tasks).toHaveLength(1);
-      
+
+      expect(result.current.tasks['todo']).toHaveLength(1);
+
       act(() => {
         result.current.deleteTask(taskId);
       });
-      
-      expect(result.current.tasks).toHaveLength(0);
+
+      expect(result.current.tasks['todo']).toHaveLength(0);
     });
 
     it('should move a task between columns', () => {
       const { result } = renderHook(() => useTaskBoard());
-      
+
       let taskId: string;
       act(() => {
         const task = result.current.addTask({
@@ -104,17 +115,21 @@ describe('useTaskBoard', () => {
         });
         taskId = task.id;
       });
-      
+
+      expect(result.current.tasks['todo']).toHaveLength(1);
+
       act(() => {
         result.current.moveTask(taskId, 'in-progress');
       });
-      
-      expect(result.current.tasks[0].columnId).toBe('in-progress');
+
+      expect(result.current.tasks['todo']).toHaveLength(0);
+      expect(result.current.tasks['in-progress']).toHaveLength(1);
+      expect(result.current.tasks['in-progress'][0].columnId).toBe('in-progress');
     });
 
     it('should toggle favorite status', () => {
       const { result } = renderHook(() => useTaskBoard());
-      
+
       let taskId: string;
       act(() => {
         const task = result.current.addTask({
@@ -127,14 +142,14 @@ describe('useTaskBoard', () => {
         });
         taskId = task.id;
       });
-      
-      expect(result.current.tasks[0].isFavorite).toBe(false);
-      
+
+      expect(result.current.tasks['todo'][0].isFavorite).toBe(false);
+
       act(() => {
         result.current.toggleFavorite(taskId);
       });
-      
-      expect(result.current.tasks[0].isFavorite).toBe(true);
+
+      expect(result.current.tasks['todo'][0].isFavorite).toBe(true);
     });
   });
 
@@ -179,7 +194,20 @@ describe('useTaskBoard', () => {
       });
 
       expect(result.current.columns).toHaveLength(2);
-      expect(result.current.tasks).toHaveLength(0);
+      expect(result.current.tasks['todo']).toBeUndefined();
+      expect(result.current.allTasks).toHaveLength(0);
+    });
+
+    it('should add empty task array for new column', () => {
+      const { result } = renderHook(() => useTaskBoard());
+
+      let newColumnId: string;
+      act(() => {
+        const column = result.current.addColumn('New Column');
+        newColumnId = column.id;
+      });
+
+      expect(result.current.tasks[newColumnId!]).toEqual([]);
     });
   });
 

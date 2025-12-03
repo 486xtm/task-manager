@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useLocalStorage } from './useLocalStorage';
-import type { Task, Column, BoardState, TaskFormData, SortType } from '../types';
+import type { Task, Column, BoardState, TaskFormData, SortType, TasksByColumn } from '../types';
 
 const DEFAULT_COLUMNS: Column[] = [
   { id: 'todo', name: 'To Do', order: 0 },
@@ -10,13 +10,79 @@ const DEFAULT_COLUMNS: Column[] = [
 
 const INITIAL_STATE: BoardState = {
   columns: DEFAULT_COLUMNS,
-  tasks: [],
+  tasks: {
+    'todo': [],
+    'in-progress': [],
+    'done': [],
+  },
 };
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+// Helper to migrate old array format to new object format
+const migrateTasksFormat = (state: BoardState | { columns: Column[]; tasks: Task[] }): BoardState => {
+  // Check if tasks is an array (old format)
+  if (Array.isArray(state.tasks)) {
+    const tasksByColumn: TasksByColumn = {};
+
+    // Initialize empty arrays for each column
+    state.columns.forEach((col) => {
+      tasksByColumn[col.id] = [];
+    });
+
+    // Distribute tasks to their respective columns
+    state.tasks.forEach((task: Task) => {
+      if (tasksByColumn[task.columnId]) {
+        tasksByColumn[task.columnId].push(task);
+      } else {
+        // If column doesn't exist, add to first column
+        const firstColumnId = state.columns[0]?.id;
+        if (firstColumnId) {
+          tasksByColumn[firstColumnId] = tasksByColumn[firstColumnId] || [];
+          tasksByColumn[firstColumnId].push({ ...task, columnId: firstColumnId });
+        }
+      }
+    });
+
+    return {
+      columns: state.columns,
+      tasks: tasksByColumn,
+    };
+  }
+
+  // Already in new format, ensure all columns have arrays
+  const tasks = state.tasks as TasksByColumn;
+  state.columns.forEach((col) => {
+    if (!tasks[col.id]) {
+      tasks[col.id] = [];
+    }
+  });
+
+  return state as BoardState;
+};
+
+// Helper to get all tasks as flat array
+const getAllTasks = (tasks: TasksByColumn): Task[] => {
+  return Object.values(tasks).flat();
+};
+
+// Helper to find task and its column
+const findTaskWithColumn = (tasks: TasksByColumn, taskId: string): { task: Task; columnId: string } | null => {
+  for (const [columnId, columnTasks] of Object.entries(tasks)) {
+    if (!Array.isArray(columnTasks)) continue;
+    const task = columnTasks.find((t) => t.id === taskId);
+    if (task) {
+      return { task, columnId };
+    }
+  }
+  return null;
+};
+
 export function useTaskBoard() {
-  const [boardState, setBoardState] = useLocalStorage<BoardState>('task-board', INITIAL_STATE);
+  const [rawBoardState, setBoardState] = useLocalStorage<BoardState>('task-board', INITIAL_STATE);
+
+  // Migrate old format to new format if needed
+  const boardState = useMemo(() => migrateTasksFormat(rawBoardState), [rawBoardState]);
 
   // Task operations
   const addTask = useCallback((taskData: TaskFormData) => {
@@ -29,61 +95,130 @@ export function useTaskBoard() {
     };
     setBoardState((prev) => ({
       ...prev,
-      tasks: [...prev.tasks, newTask],
+      tasks: {
+        ...prev.tasks,
+        [taskData.columnId]: [...(prev.tasks[taskData.columnId] || []), newTask],
+      },
     }));
     return newTask;
   }, [setBoardState]);
 
   const updateTask = useCallback((taskId: string, updates: Partial<TaskFormData>) => {
-    setBoardState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((task) =>
-        task.id === taskId
-          ? { ...task, ...updates, updatedAt: new Date().toISOString() }
-          : task
-      ),
-    }));
+    setBoardState((prev) => {
+      const result = findTaskWithColumn(prev.tasks, taskId);
+      if (!result) return prev;
+
+      const { columnId: currentColumnId } = result;
+      const newColumnId = updates.columnId;
+
+      // If moving to a different column
+      if (newColumnId && newColumnId !== currentColumnId) {
+        const updatedTask = {
+          ...result.task,
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          tasks: {
+            ...prev.tasks,
+            [currentColumnId]: prev.tasks[currentColumnId].filter((t) => t.id !== taskId),
+            [newColumnId]: [...(prev.tasks[newColumnId] || []), updatedTask],
+          },
+        };
+      }
+
+      // Update in same column
+      return {
+        ...prev,
+        tasks: {
+          ...prev.tasks,
+          [currentColumnId]: prev.tasks[currentColumnId].map((task) =>
+            task.id === taskId
+              ? { ...task, ...updates, updatedAt: new Date().toISOString() }
+              : task
+          ),
+        },
+      };
+    });
   }, [setBoardState]);
 
   const deleteTask = useCallback((taskId: string) => {
-    setBoardState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.filter((task) => task.id !== taskId),
-    }));
+    setBoardState((prev) => {
+      const result = findTaskWithColumn(prev.tasks, taskId);
+      if (!result) return prev;
+
+      const { columnId } = result;
+      return {
+        ...prev,
+        tasks: {
+          ...prev.tasks,
+          [columnId]: prev.tasks[columnId].filter((task) => task.id !== taskId),
+        },
+      };
+    });
   }, [setBoardState]);
 
   const moveTask = useCallback((taskId: string, targetColumnId: string) => {
-    setBoardState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((task) =>
-        task.id === taskId
-          ? { ...task, columnId: targetColumnId, updatedAt: new Date().toISOString() }
-          : task
-      ),
-    }));
+    setBoardState((prev) => {
+      const result = findTaskWithColumn(prev.tasks, taskId);
+      if (!result) return prev;
+
+      const { task, columnId: sourceColumnId } = result;
+      if (sourceColumnId === targetColumnId) return prev;
+
+      const updatedTask = {
+        ...task,
+        columnId: targetColumnId,
+        updatedAt: new Date().toISOString(),
+      };
+
+      return {
+        ...prev,
+        tasks: {
+          ...prev.tasks,
+          [sourceColumnId]: prev.tasks[sourceColumnId].filter((t) => t.id !== taskId),
+          [targetColumnId]: [...(prev.tasks[targetColumnId] || []), updatedTask],
+        },
+      };
+    });
   }, [setBoardState]);
 
   const toggleFavorite = useCallback((taskId: string) => {
-    setBoardState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((task) =>
-        task.id === taskId
-          ? { ...task, isFavorite: !task.isFavorite, updatedAt: new Date().toISOString() }
-          : task
-      ),
-    }));
+    setBoardState((prev) => {
+      const result = findTaskWithColumn(prev.tasks, taskId);
+      if (!result) return prev;
+
+      const { columnId } = result;
+      return {
+        ...prev,
+        tasks: {
+          ...prev.tasks,
+          [columnId]: prev.tasks[columnId].map((task) =>
+            task.id === taskId
+              ? { ...task, isFavorite: !task.isFavorite, updatedAt: new Date().toISOString() }
+              : task
+          ),
+        },
+      };
+    });
   }, [setBoardState]);
 
   // Column operations
   const addColumn = useCallback((name: string) => {
+    const columnId = generateId();
     const newColumn: Column = {
-      id: generateId(),
+      id: columnId,
       name,
       order: boardState.columns.length,
     };
     setBoardState((prev) => ({
       ...prev,
       columns: [...prev.columns, newColumn],
+      tasks: {
+        ...prev.tasks,
+        [columnId]: [],
+      },
     }));
     return newColumn;
   }, [boardState.columns.length, setBoardState]);
@@ -98,22 +233,26 @@ export function useTaskBoard() {
   }, [setBoardState]);
 
   const deleteColumn = useCallback((columnId: string) => {
-    setBoardState((prev) => ({
-      ...prev,
-      columns: prev.columns.filter((col) => col.id !== columnId),
-      tasks: prev.tasks.filter((task) => task.columnId !== columnId),
-    }));
+    setBoardState((prev) => {
+      const { [columnId]: _, ...remainingTasks } = prev.tasks;
+      return {
+        ...prev,
+        columns: prev.columns.filter((col) => col.id !== columnId),
+        tasks: remainingTasks,
+      };
+    });
   }, [setBoardState]);
 
   // Get task by ID
   const getTask = useCallback((taskId: string) => {
-    return boardState.tasks.find((task) => task.id === taskId);
+    const result = findTaskWithColumn(boardState.tasks, taskId);
+    return result?.task;
   }, [boardState.tasks]);
 
   // Get tasks by column with sorting
   const getTasksByColumn = useCallback((columnId: string, sortType: SortType = 'none') => {
-    let tasks = boardState.tasks.filter((task) => task.columnId === columnId);
-    
+    let tasks = [...(boardState.tasks[columnId] || [])];
+
     // Sort by favorites first
     tasks = tasks.sort((a, b) => {
       if (a.isFavorite && !b.isFavorite) return -1;
@@ -136,8 +275,7 @@ export function useTaskBoard() {
         }
         return b.name.localeCompare(a.name);
       });
-    } 
-     else if (sortType === 'date') {
+    } else if (sortType === 'date') {
       tasks = tasks.sort((a, b) => {
         if (a.isFavorite !== b.isFavorite) {
           return a.isFavorite ? -1 : 1;
@@ -153,9 +291,13 @@ export function useTaskBoard() {
     return [...boardState.columns].sort((a, b) => a.order - b.order);
   }, [boardState.columns]);
 
+  // Get all tasks as flat array (for backward compatibility)
+  const allTasks = useMemo(() => getAllTasks(boardState.tasks), [boardState.tasks]);
+
   return {
     columns: sortedColumns,
     tasks: boardState.tasks,
+    allTasks,
     addTask,
     updateTask,
     deleteTask,

@@ -16,9 +16,11 @@ export interface Column {
   order: number;
 }
 
+export type TasksByColumn = Record<string, Task[]>;
+
 export interface BoardState {
   columns: Column[];
-  tasks: Task[];
+  tasks: TasksByColumn;
 }
 
 export type TaskFormData = Omit<Task, 'id' | 'createdAt' | 'updatedAt'>;

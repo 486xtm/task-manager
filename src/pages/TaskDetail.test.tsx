@@ -59,22 +59,24 @@ describe('TaskDetail', () => {
     // Set up localStorage with a task
     const boardState = {
       columns: [{ id: 'todo', name: 'To Do', order: 0 }],
-      tasks: [{
-        id: 'existing-task',
-        name: 'My Task',
-        description: 'My Description',
-        deadline: '2024-12-31',
-        columnId: 'todo',
-        imageUrl: null,
-        isFavorite: false,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      }],
+      tasks: {
+        'todo': [{
+          id: 'existing-task',
+          name: 'My Task',
+          description: 'My Description',
+          deadline: '2024-12-31',
+          columnId: 'todo',
+          imageUrl: null,
+          isFavorite: false,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        }],
+      },
     };
     (localStorage.getItem as jest.Mock).mockReturnValue(JSON.stringify(boardState));
-    
+
     renderWithRouter('existing-task');
-    
+
     expect(screen.getByText('My Task')).toBeInTheDocument();
     expect(screen.getByText('My Description')).toBeInTheDocument();
   });
@@ -82,66 +84,72 @@ describe('TaskDetail', () => {
   it('should display column name as chip', () => {
     const boardState = {
       columns: [{ id: 'todo', name: 'To Do', order: 0 }],
-      tasks: [{
-        id: 'task-1',
-        name: 'Test',
-        description: '',
-        deadline: null,
-        columnId: 'todo',
-        imageUrl: null,
-        isFavorite: false,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      }],
+      tasks: {
+        'todo': [{
+          id: 'task-1',
+          name: 'Test',
+          description: '',
+          deadline: null,
+          columnId: 'todo',
+          imageUrl: null,
+          isFavorite: false,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        }],
+      },
     };
     (localStorage.getItem as jest.Mock).mockReturnValue(JSON.stringify(boardState));
-    
+
     renderWithRouter('task-1');
-    
+
     expect(screen.getByText('To Do')).toBeInTheDocument();
   });
 
   it('should show No description message when description is empty', () => {
     const boardState = {
       columns: [{ id: 'todo', name: 'To Do', order: 0 }],
-      tasks: [{
-        id: 'task-1',
-        name: 'Test',
-        description: '',
-        deadline: null,
-        columnId: 'todo',
-        imageUrl: null,
-        isFavorite: false,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      }],
+      tasks: {
+        'todo': [{
+          id: 'task-1',
+          name: 'Test',
+          description: '',
+          deadline: null,
+          columnId: 'todo',
+          imageUrl: null,
+          isFavorite: false,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        }],
+      },
     };
     (localStorage.getItem as jest.Mock).mockReturnValue(JSON.stringify(boardState));
-    
+
     renderWithRouter('task-1');
-    
+
     expect(screen.getByText('No description provided.')).toBeInTheDocument();
   });
 
   it('should show attached image when imageUrl is provided', () => {
     const boardState = {
       columns: [{ id: 'todo', name: 'To Do', order: 0 }],
-      tasks: [{
-        id: 'task-1',
-        name: 'Test',
-        description: '',
-        deadline: null,
-        columnId: 'todo',
-        imageUrl: 'data:image/png;base64,test',
-        isFavorite: false,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      }],
+      tasks: {
+        'todo': [{
+          id: 'task-1',
+          name: 'Test',
+          description: '',
+          deadline: null,
+          columnId: 'todo',
+          imageUrl: 'data:image/png;base64,test',
+          isFavorite: false,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        }],
+      },
     };
     (localStorage.getItem as jest.Mock).mockReturnValue(JSON.stringify(boardState));
-    
+
     renderWithRouter('task-1');
-    
+
     expect(screen.getByTestId('task-image')).toBeInTheDocument();
     expect(screen.getByText('Attached Image')).toBeInTheDocument();
   });
