@@ -159,26 +159,113 @@ export function useTaskBoard() {
     });
   }, [setBoardState]);
 
-  const moveTask = useCallback((taskId: string, targetColumnId: string) => {
+  const moveTask = useCallback((taskId: string, targetColumnId: string, targetIndex?: number) => {
     setBoardState((prev) => {
       const result = findTaskWithColumn(prev.tasks, taskId);
+      console.log("++++++++++++++++", result);
       if (!result) return prev;
 
       const { task, columnId: sourceColumnId } = result;
-      if (sourceColumnId === targetColumnId) return prev;
 
+      // Same column reordering
+      if (sourceColumnId === targetColumnId) {
+        if (targetIndex === undefined) return prev;
+
+        const columnTasks = [...prev.tasks[sourceColumnId]];
+        const currentIndex = columnTasks.findIndex((t) => t.id === taskId);
+        if (currentIndex === -1 || currentIndex === targetIndex) return prev;
+
+        // Find the boundary between favorites and non-favorites
+        const lastFavoriteIndex = columnTasks.reduce((lastIdx, t, idx) => {
+          return t.isFavorite ? idx : lastIdx;
+        }, -1);
+        const firstNonFavoriteIndex = lastFavoriteIndex + 1;
+
+        let adjustedTargetIndex = targetIndex;
+
+        // If dragging a non-favorite task onto a favorite task's position,
+        // move it to the first non-favorite position instead
+        if (!task.isFavorite && targetIndex <= lastFavoriteIndex) {
+          adjustedTargetIndex = firstNonFavoriteIndex;
+        }
+
+        // If dragging a favorite task onto a non-favorite task's position,
+        // move it to the last favorite position instead
+        if (task.isFavorite && targetIndex > lastFavoriteIndex) {
+          // After removing the task, calculate where the last favorite will be
+          const tasksWithoutCurrent = columnTasks.filter((t) => t.id !== taskId);
+          const newLastFavoriteIndex = tasksWithoutCurrent.reduce((lastIdx, t, idx) => {
+            return t.isFavorite ? idx : lastIdx;
+          }, -1);
+          adjustedTargetIndex = newLastFavoriteIndex + 1;
+        }
+
+        // Remove from current position
+        columnTasks.splice(currentIndex, 1);
+        // Adjust target index if removing from before target
+        const finalTargetIndex = currentIndex < adjustedTargetIndex ? adjustedTargetIndex - 1 : adjustedTargetIndex;
+        // Insert at new position
+        columnTasks.splice(finalTargetIndex, 0, task);
+
+        return {
+          ...prev,
+          tasks: {
+            ...prev.tasks,
+            [sourceColumnId]: columnTasks,
+          },
+        };
+      }
+
+      // Moving to different column
       const updatedTask = {
         ...task,
         columnId: targetColumnId,
         updatedAt: new Date().toISOString(),
       };
 
+      const targetTasks = [...(prev.tasks[targetColumnId] || [])];
+
+      if (targetIndex !== undefined) {
+        // Find the boundary between favorites and non-favorites in target column
+        const lastFavoriteIndex = targetTasks.reduce((lastIdx, t, idx) => {
+          return t.isFavorite ? idx : lastIdx;
+        }, -1);
+        const firstNonFavoriteIndex = lastFavoriteIndex + 1;
+
+        let adjustedTargetIndex = targetIndex;
+
+        // If dropping a non-favorite task onto a favorite task's position,
+        // move it to the first non-favorite position instead
+        if (!updatedTask.isFavorite && targetIndex <= lastFavoriteIndex) {
+          adjustedTargetIndex = firstNonFavoriteIndex;
+        }
+
+        // If dropping a favorite task onto a non-favorite task's position,
+        // move it to the last favorite position instead (right after last favorite)
+        if (updatedTask.isFavorite && targetIndex > lastFavoriteIndex) {
+          adjustedTargetIndex = lastFavoriteIndex + 1;
+        }
+
+        targetTasks.splice(adjustedTargetIndex, 0, updatedTask);
+      } else {
+        // When no target index, add to end of respective group
+        if (updatedTask.isFavorite) {
+          // Find last favorite index and insert after it
+          const lastFavoriteIndex = targetTasks.reduce((lastIdx, t, idx) => {
+            return t.isFavorite ? idx : lastIdx;
+          }, -1);
+          targetTasks.splice(lastFavoriteIndex + 1, 0, updatedTask);
+        } else {
+          targetTasks.push(updatedTask);
+        }
+      }
+
       return {
         ...prev,
         tasks: {
           ...prev.tasks,
           [sourceColumnId]: prev.tasks[sourceColumnId].filter((t) => t.id !== taskId),
-          [targetColumnId]: [...(prev.tasks[targetColumnId] || []), updatedTask],
+          [targetColumnId]: targetTasks,
         },
       };
     });

@@ -28,7 +28,7 @@ interface BoardColumnProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onToggleFavorite: (taskId: string) => void;
-  onMoveTask: (taskId: string, targetColumnId: string) => void;
+  onMoveTask: (taskId: string, targetColumnId: string, targetIndex?: number) => void;
   onEditColumn: (column: Column) => void;
   onDeleteColumn: (columnId: string) => void;
   columns: Column[];
@@ -53,6 +53,7 @@ export function BoardColumn({
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [moveMenuAnchor, setMoveMenuAnchor] = useState<null | { anchor: HTMLElement; taskId: string }>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const handleDeleteColumnClick = () => {
     setMenuAnchor(null);
@@ -70,6 +71,7 @@ export function BoardColumn({
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setDragOverIndex(null);
     const taskId = e.dataTransfer.getData('taskId');
     if (taskId) {
       onMoveTask(taskId, column.id);
@@ -78,6 +80,31 @@ export function BoardColumn({
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('taskId', taskId);
+    e.dataTransfer.setData('sourceColumnId', column.id);
+  };
+
+  const handleTaskDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (sortType === 'none') {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleTaskDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverIndex(null);
+    const taskId = e.dataTransfer.getData('taskId');
+    if (taskId && sortType === 'none') {
+      onMoveTask(taskId, column.id, targetIndex);
+    } else if (taskId) {
+      onMoveTask(taskId, column.id);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
   };
 
   return (
@@ -130,13 +157,22 @@ export function BoardColumn({
         </Box>
       </Box>
 
-      <Box sx={{ p: 1, overflow: 'auto', flexGrow: 1 }}>
-        {tasks.map((task) => (
+      <Box
+        sx={{ p: 1, overflow: 'auto', flexGrow: 1 }}
+        onDragLeave={handleDragLeave}
+      >
+        {tasks.map((task, index) => (
           <Box
             key={task.id}
             draggable
             onDragStart={(e) => handleDragStart(e, task.id)}
+            onDragOver={(e) => handleTaskDragOver(e, index)}
+            onDrop={(e) => handleTaskDrop(e, index)}
             data-testid={`draggable-task-${task.id}`}
+            sx={{
+              borderTop: dragOverIndex === index && sortType === 'none' ? '3px solid #1976d2' : 'none',
+              transition: 'border-top 0.15s ease',
+            }}
           >
             <TaskCard
               task={task}

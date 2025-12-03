@@ -41,4 +41,3 @@ export interface ColumnDialogProps {
 }
 
 export type SortType = 'alphabetical' | 'descending' | 'date' | 'none';
-
