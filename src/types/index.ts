@@ -38,5 +38,5 @@ export interface ColumnDialogProps {
   onSave: (name: string) => void;
 }
 
-export type SortType = 'alphabetical' | 'date' | 'none';
+export type SortType = 'alphabetical' | 'descending' | 'date' | 'none';
 

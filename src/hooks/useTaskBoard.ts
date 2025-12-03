@@ -129,7 +129,15 @@ export function useTaskBoard() {
         }
         return a.name.localeCompare(b.name);
       });
-    } else if (sortType === 'date') {
+    } else if (sortType === 'descending') {
+      tasks = tasks.sort((a, b) => {
+        if (a.isFavorite !== b.isFavorite) {
+          return a.isFavorite ? -1 : 1;
+        }
+        return b.name.localeCompare(a.name);
+      });
+    } 
+     else if (sortType === 'date') {
       tasks = tasks.sort((a, b) => {
         if (a.isFavorite !== b.isFavorite) {
           return a.isFavorite ? -1 : 1;

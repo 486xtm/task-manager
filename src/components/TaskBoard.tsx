@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Box, Button, AppBar, Toolbar, Typography, Container } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import { useTaskBoardContext } from '../context/TaskBoardContext';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { BoardColumn } from './BoardColumn';
 import { TaskDialog } from './TaskDialog';
 import { ColumnDialog } from './ColumnDialog';
@@ -26,7 +27,7 @@ export function TaskBoard() {
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [editingColumn, setEditingColumn] = useState<Column | undefined>();
   const [defaultColumnId, setDefaultColumnId] = useState<string | undefined>();
-  const [columnSortTypes, setColumnSortTypes] = useState<Record<string, SortType>>({});
+  const [columnSortTypes, setColumnSortTypes] = useLocalStorage<Record<string, SortType>>('column-sort-types', {});
 
   const handleAddTask = (columnId: string) => {
     setDefaultColumnId(columnId);

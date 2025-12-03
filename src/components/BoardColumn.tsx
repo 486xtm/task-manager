@@ -156,7 +156,7 @@ export function BoardColumn({
       >
         <MenuItem
           onClick={() => {
-            onSortChange(column.id, sortType === 'alphabetical' ? 'none' : 'alphabetical');
+            onSortChange(column.id, sortType === 'alphabetical' ? 'descending' : sortType === "descending" ? 'none' : sortType === "none" ? 'alphabetical' : 'none');
             setMenuAnchor(null);
           }}
           data-testid={`sort-alpha-btn-${column.id}`}
@@ -165,7 +165,7 @@ export function BoardColumn({
             <SortByAlpha fontSize="small" />
           </ListItemIcon>
           <ListItemText>
-            {sortType === 'alphabetical' ? 'Clear Sort' : 'Sort A-Z'}
+            {sortType === 'alphabetical' ? 'Sort Z-A' : sortType === "descending" ? 'Clear Sort' : 'Sort A-Z'}
           </ListItemText>
         </MenuItem>
         <MenuItem
