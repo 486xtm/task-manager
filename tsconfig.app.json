@@ -24,5 +24,15 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__/**",
+    "src/setupTests.ts",
+    "jest.config.ts",
+    "jest.config.js"
+  ]
 }

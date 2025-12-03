@@ -1,8 +1,9 @@
-import '@testing-library/jest-dom';
-// import { TextEncoder, TextDecoder } from 'util';
+import "@testing-library/jest-dom";
+import { TextEncoder, TextDecoder } from "util";
 
-// Polyfill TextEncoder/TextDecoder for jsdom
-// Object.assign(global, { TextEncoder, TextDecoder });
+// Proper polyfill for Jest + Node 22
+(globalThis as any).TextEncoder = TextEncoder;
+(globalThis as any).TextDecoder = TextDecoder;
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
