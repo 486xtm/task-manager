@@ -18,6 +18,7 @@ import {
   SortByAlpha,
 } from '@mui/icons-material';
 import type { Column, Task, SortType } from '../types';
+import { SortTypeData } from '../types';
 import { TaskCard } from './TaskCard';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -192,7 +193,7 @@ export function BoardColumn({
       >
         <MenuItem
           onClick={() => {
-            onSortChange(column.id, sortType === 'alphabetical' ? 'descending' : sortType === "descending" ? 'none' : sortType === "none" ? 'alphabetical' : 'none');
+            onSortChange(column.id, sortType === SortTypeData.Alphabetical ? SortTypeData.Descending : sortType === SortTypeData.Descending ? SortTypeData.None : sortType === SortTypeData.None ? SortTypeData.Alphabetical : SortTypeData.None);
             setMenuAnchor(null);
           }}
           data-testid={`sort-alpha-btn-${column.id}`}
@@ -201,7 +202,7 @@ export function BoardColumn({
             <SortByAlpha fontSize="small" />
           </ListItemIcon>
           <ListItemText>
-            {sortType === 'alphabetical' ? 'Sort Z-A' : sortType === "descending" ? 'Clear Sort' : 'Sort A-Z'}
+            {sortType === SortTypeData.Alphabetical ? 'Sort Z-A' : sortType === SortTypeData.Descending ? 'Clear Sort' : 'Sort A-Z'}
           </ListItemText>
         </MenuItem>
         <MenuItem

@@ -40,4 +40,10 @@ export interface ColumnDialogProps {
   onSave: (name: string) => void;
 }
 
-export type SortType = 'alphabetical' | 'descending' | 'date' | 'none';
+export type SortType = 'alphabetical' | 'descending' | 'none';
+
+export enum SortTypeData {
+  Alphabetical = "alphabetical",
+  Descending = "descending",
+  None = "none",
+}

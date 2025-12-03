@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import type { Task, Column, BoardState, TaskFormData, SortType, TasksByColumn } from '../types';
+import { SortTypeData } from '../types';
 
 const DEFAULT_COLUMNS: Column[] = [
   { id: 'todo', name: 'To Do', order: 0 },
@@ -162,16 +163,16 @@ export function useTaskBoard() {
   const moveTask = useCallback((taskId: string, targetColumnId: string, targetIndex?: number) => {
     setBoardState((prev) => {
       const result = findTaskWithColumn(prev.tasks, taskId);
-      console.log("++++++++++++++++", result);
       if (!result) return prev;
 
       const { task, columnId: sourceColumnId } = result;
 
+      const columnTasks = [...prev.tasks[sourceColumnId]];
       // Same column reordering
       if (sourceColumnId === targetColumnId) {
-        if (targetIndex === undefined) return prev;
+        if (targetIndex === undefined)
+          targetIndex = columnTasks.length;
 
-        const columnTasks = [...prev.tasks[sourceColumnId]];
         const currentIndex = columnTasks.findIndex((t) => t.id === taskId);
         if (currentIndex === -1 || currentIndex === targetIndex) return prev;
 
@@ -191,13 +192,8 @@ export function useTaskBoard() {
 
         // If dragging a favorite task onto a non-favorite task's position,
         // move it to the last favorite position instead
-        if (task.isFavorite && targetIndex > lastFavoriteIndex) {
-          // After removing the task, calculate where the last favorite will be
-          const tasksWithoutCurrent = columnTasks.filter((t) => t.id !== taskId);
-          const newLastFavoriteIndex = tasksWithoutCurrent.reduce((lastIdx, t, idx) => {
-            return t.isFavorite ? idx : lastIdx;
-          }, -1);
-          adjustedTargetIndex = newLastFavoriteIndex + 1;
+        if (task.isFavorite && targetIndex >= lastFavoriteIndex) {
+          adjustedTargetIndex = lastFavoriteIndex + 1;
         }
 
         // Remove from current position
@@ -215,6 +211,8 @@ export function useTaskBoard() {
           },
         };
       }
+
+
 
       // Moving to different column
       const updatedTask = {
@@ -348,26 +346,19 @@ export function useTaskBoard() {
     });
 
     // Then apply additional sorting
-    if (sortType === 'alphabetical') {
+    if (sortType === SortTypeData.Alphabetical) {
       tasks = tasks.sort((a, b) => {
         if (a.isFavorite !== b.isFavorite) {
           return a.isFavorite ? -1 : 1;
         }
         return a.name.localeCompare(b.name);
       });
-    } else if (sortType === 'descending') {
+    } else if (sortType === SortTypeData.Descending) {
       tasks = tasks.sort((a, b) => {
         if (a.isFavorite !== b.isFavorite) {
           return a.isFavorite ? -1 : 1;
         }
         return b.name.localeCompare(a.name);
-      });
-    } else if (sortType === 'date') {
-      tasks = tasks.sort((a, b) => {
-        if (a.isFavorite !== b.isFavorite) {
-          return a.isFavorite ? -1 : 1;
-        }
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
     }
 
