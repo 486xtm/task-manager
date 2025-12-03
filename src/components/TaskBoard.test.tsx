@@ -72,7 +72,7 @@ describe('TaskBoard', () => {
     });
   });
 
-  it('should delete a task when delete button is clicked', async () => {
+  it('should delete a task when delete button is clicked and confirmed', async () => {
     const user = userEvent.setup();
     render(<TaskBoard />);
 
@@ -88,6 +88,12 @@ describe('TaskBoard', () => {
     // Get the task card's delete button using testid
     const deleteButtons = screen.getAllByTestId(/delete-btn-/);
     fireEvent.click(deleteButtons[0]);
+
+    // Confirm the deletion in the dialog
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-dialog-confirm')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'));
 
     await waitFor(() => {
       expect(screen.queryByText('Task to Delete')).not.toBeInTheDocument();

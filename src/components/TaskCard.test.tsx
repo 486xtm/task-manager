@@ -60,12 +60,28 @@ describe('TaskCard', () => {
     expect(mockHandlers.onEdit).toHaveBeenCalledWith(mockTask);
   });
 
-  it('should call onDelete when delete button is clicked', () => {
+  it('should call onDelete when delete button is clicked and confirmed', () => {
     render(<TaskCard task={mockTask} {...mockHandlers} />);
-    
+
+    // Click delete button to open confirm dialog
     fireEvent.click(screen.getByTestId('delete-btn-task-1'));
-    
+
+    // Confirm the deletion
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'));
+
     expect(mockHandlers.onDelete).toHaveBeenCalledWith('task-1');
+  });
+
+  it('should not call onDelete when delete is cancelled', () => {
+    render(<TaskCard task={mockTask} {...mockHandlers} />);
+
+    // Click delete button to open confirm dialog
+    fireEvent.click(screen.getByTestId('delete-btn-task-1'));
+
+    // Cancel the deletion
+    fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+
+    expect(mockHandlers.onDelete).not.toHaveBeenCalled();
   });
 
   it('should call onToggleFavorite when favorite button is clicked', () => {

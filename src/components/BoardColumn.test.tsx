@@ -165,7 +165,7 @@ describe('BoardColumn', () => {
     expect(mockHandlers.onEditColumn).toHaveBeenCalledWith(mockColumn);
   });
 
-  it('should call onDeleteColumn when delete button is clicked', () => {
+  it('should call onDeleteColumn when delete button is clicked and confirmed', () => {
     render(
       <BoardColumn
         column={mockColumn}
@@ -175,11 +175,34 @@ describe('BoardColumn', () => {
         {...mockHandlers}
       />
     );
-    
+
     fireEvent.click(screen.getByTestId('column-menu-btn-todo'));
     fireEvent.click(screen.getByTestId('delete-column-btn-todo'));
-    
+
+    // Confirm the deletion
+    fireEvent.click(screen.getByTestId('confirm-dialog-confirm'));
+
     expect(mockHandlers.onDeleteColumn).toHaveBeenCalledWith('todo');
+  });
+
+  it('should not call onDeleteColumn when delete is cancelled', () => {
+    render(
+      <BoardColumn
+        column={mockColumn}
+        tasks={mockTasks}
+        columns={mockColumns}
+        sortType="none"
+        {...mockHandlers}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('column-menu-btn-todo'));
+    fireEvent.click(screen.getByTestId('delete-column-btn-todo'));
+
+    // Cancel the deletion
+    fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+
+    expect(mockHandlers.onDeleteColumn).not.toHaveBeenCalled();
   });
 });
 

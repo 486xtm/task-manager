@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import type { Column, Task, SortType } from '../types';
 import { TaskCard } from './TaskCard';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface BoardColumnProps {
   column: Column;
@@ -51,6 +52,17 @@ export function BoardColumn({
 }: BoardColumnProps) {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [moveMenuAnchor, setMoveMenuAnchor] = useState<null | { anchor: HTMLElement; taskId: string }>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const handleDeleteColumnClick = () => {
+    setMenuAnchor(null);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteColumnConfirm = () => {
+    onDeleteColumn(column.id);
+    setDeleteDialogOpen(false);
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -169,10 +181,7 @@ export function BoardColumn({
           <ListItemText>Edit Column</ListItemText>
         </MenuItem>
         <MenuItem
-          onClick={() => {
-            onDeleteColumn(column.id);
-            setMenuAnchor(null);
-          }}
+          onClick={handleDeleteColumnClick}
           sx={{ color: 'error.main' }}
           data-testid={`delete-column-btn-${column.id}`}
         >
@@ -205,6 +214,14 @@ export function BoardColumn({
             </MenuItem>
           ))}
       </Menu>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Column"
+        message={`Are you sure you want to delete "${column.name}"? All tasks in this column will also be deleted. This action cannot be undone.`}
+        onConfirm={handleDeleteColumnConfirm}
+        onCancel={() => setDeleteDialogOpen(false)}
+      />
     </Paper>
   );
 }

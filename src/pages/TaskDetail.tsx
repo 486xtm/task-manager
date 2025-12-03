@@ -14,7 +14,7 @@ import {
 import { ArrowBack, Star, StarBorder, Edit, Delete } from '@mui/icons-material';
 import { useTaskBoardContext } from '../context/TaskBoardContext';
 import { useState } from 'react';
-import { TaskDialog } from '../components/TaskDialog';
+import { TaskDialog, ConfirmDialog } from '../components';
 import type { TaskFormData } from '../types';
 
 export function TaskDetail() {
@@ -22,6 +22,7 @@ export function TaskDetail() {
   const navigate = useNavigate();
   const { getTask, updateTask, deleteTask, toggleFavorite, columns } = useTaskBoardContext();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const task = taskId ? getTask(taskId) : undefined;
 
@@ -50,8 +51,13 @@ export function TaskDetail() {
 
   const column = columns.find((col) => col.id === task.columnId);
 
-  const handleDelete = () => {
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
     deleteTask(task.id);
+    setDeleteDialogOpen(false);
     navigate('/');
   };
 
@@ -93,7 +99,7 @@ export function TaskDetail() {
           >
             <Edit />
           </IconButton>
-          <IconButton color="inherit" onClick={handleDelete} data-testid="detail-delete-btn">
+          <IconButton color="inherit" onClick={handleDeleteClick} data-testid="detail-delete-btn">
             <Delete />
           </IconButton>
         </Toolbar>
@@ -169,6 +175,14 @@ export function TaskDetail() {
         task={task}
         onSave={handleSaveTask}
         columns={columns}
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Task"
+        message={`Are you sure you want to delete "${task.name}"? This action cannot be undone.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteDialogOpen(false)}
       />
     </Box>
   );

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import type { Task } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface TaskCardProps {
   task: Task;
@@ -27,6 +29,16 @@ interface TaskCardProps {
 
 export function TaskCard({ task, onEdit, onDelete, onToggleFavorite }: TaskCardProps) {
   const navigate = useNavigate();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    onDelete(task.id);
+    setDeleteDialogOpen(false);
+  };
 
   const formatDeadline = (deadline: string | null) => {
     if (!deadline) return null;
@@ -125,7 +137,7 @@ export function TaskCard({ task, onEdit, onDelete, onToggleFavorite }: TaskCardP
           <Tooltip title="Delete">
             <IconButton
               size="small"
-              onClick={() => onDelete(task.id)}
+              onClick={handleDeleteClick}
               color="error"
               data-testid={`delete-btn-${task.id}`}
             >
@@ -134,6 +146,14 @@ export function TaskCard({ task, onEdit, onDelete, onToggleFavorite }: TaskCardP
           </Tooltip>
         </Box>
       </CardContent>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Task"
+        message={`Are you sure you want to delete "${task.name}"? This action cannot be undone.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteDialogOpen(false)}
+      />
     </Card>
   );
 }
